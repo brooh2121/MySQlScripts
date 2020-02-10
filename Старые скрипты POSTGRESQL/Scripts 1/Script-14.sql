@@ -1,0 +1,5 @@
+SELECT * 
+FROM req_access_kbm_to_jur 
+WHERE IS_RESPONSE=1 
+ORDER BY REQ_ACCESS_ID DESC 
+LIMIT 1;

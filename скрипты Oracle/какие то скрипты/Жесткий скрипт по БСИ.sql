@@ -1,0 +1,52 @@
+WITH TT1 AS (
+  SELECT
+  rrj.INS_REQ_ID,
+  ic.INS_COMPANY,
+  rrj.SIGN_OPERATION,
+  case 
+  when rrj.sign_operation = 1
+  then 'Успешно'
+  else 'Не успешно'
+  END as "Получение отчета",
+  rrj.DATE_REQUEST,
+  ncrc.COST_REPORT,
+  /*CASE
+  WHEN EXTRACTVALUE(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(irj.resp_body),NLS_CHARSET_ID('UTF8')),'*:CostReportResponse/CashBalance') != '0'
+  then 'При деньгах'
+  ELSE 'Голяк'
+  end AS "Что по баблу"*/
+  EXTRACTVALUE(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(irj.resp_body),NLS_CHARSET_ID('UTF8')),'*:CostReportResponse/CashBalance') AS "CASH_BALANCE"
+  FROM BSI1.REPORT_REQUEST_JOUR rrj
+  JOIN BSI1.NSI_COST_REPORT_COMPANY ncrc ON rrj.NSI_COST_REPORT_COMPANY_ID = ncrc.NSI_COST_REPORT_COMPANY_ID
+  JOIN BSI1.INS_COMPANY ic ON rrj.INS_COMPANY_ID = ic.INS_COMPANY_ID
+  JOIN BSI1.INS_REQUEST_JOUR irj ON rrj.INS_REQ_ID = irj.INS_REQ_ID
+  --WHERE rrj.DATE_REQUEST >= TRUNC(SYSDATE)
+  WHERE rrj.DATE_REQUEST >= TO_DATE('20.06.2019','dd.mm.yyyy')
+)
+SELECT 
+COUNT(INS_REQ_ID) "Кол-во",
+TT1.INS_COMPANY "Наименование СК",
+"Получение отчета",
+TO_CHAR(TT1.DATE_REQUEST,'yyyy.mm') "год и месяц отчета",
+COST_REPORT "Стоимость отчета",
+TT1.CASH_BALANCE "Баланс",
+TT2.REQ_STATUS_MESSAGE "Статус отчета",
+SYSDATE
+FROM TT1 LEFT JOIN (
+SELECT
+EXTRACTVALUE(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(irj.req_body),NLS_CHARSET_ID('UTF8')),'*:ReportRequest/CostReportID') AS COST_REPORT_ID,
+irj.REQ_STATUS_MESSAGE
+FROM BSI1.INS_REQUEST_JOUR irj
+WHERE irj.REQ_TYPE_ID = 48
+--AND irj.REQ_STATUS_ID != 603
+--and irj.INS_COMPANY_ID = 206
+AND irj.BEG_DATE >= TO_DATE('20.06.2019', 'dd.mm.yyyy')
+)TT2 ON TT1.INS_REQ_ID = TT2.COST_REPORT_ID
+GROUP BY
+TT1.INS_COMPANY,
+"Получение отчета",
+TO_CHAR(TT1.DATE_REQUEST,'yyyy.mm'),
+TT1.COST_REPORT,
+CASH_BALANCE,
+TT2.REQ_STATUS_MESSAGE
+;

@@ -1,0 +1,100 @@
+﻿SELECT
+ic.INS_COMPANY "Наименование СК",
+ic.INSURER_ID "INSURER",
+icd.ins_company_id "ID Компании",
+icd.amount_policy_garant "Квота",
+icd.distribution_code "Код региона",
+icd.distribution_date "Дата распределения"--,
+--icd.PRINCIPAL_UNQ_ID
+FROM RSA_EOSAGO.ins_company_distribution icd
+JOIN RSA_EOSAGO.INS_COMPANY ic ON ic.INS_COMPANY_ID = icd.ins_company_id
+WHERE distribution_date >= TRUNC(SYSDATE)
+AND icd.DISTRIBUTION_CODE = 2
+--AND icd.PRINCIPAL_UNQ_ID not in (562)
+--and insurer_id = '16100000'
+ORDER by ic.INSURER_ID;
+
+select
+ic.ins_company,
+ic.insurer_id,
+pcs.*
+from rsa_eosago.principal_calculation_share pcs
+join rsa_eosago.ins_company ic on pcs.ins_company_id = ic.ins_company_id
+where pcs.calculation_date >= trunc(SYSDATE); --AND PCS.PRINCIPAL_UNQ_ID = 564 /*and insurer_id = '16100000'*/;
+
+SELECT * FROM RSA_EOSAGO.PRINCIPAL_CALCULATION_SHARE "pcs" WHERE status !=1;
+
+SELECT
+ic.INS_COMPANY,
+ic.INSURER_ID,
+nslt.STOP_LIST_TYPE_NAME
+from rsa_eosago.ins_company ic
+JOIN RSA_EOSAGO.NSI_STOP_LIST_TYPE nslt ON IC.STOP_LIST_TYPE_ID = NSLT.STOP_LIST_TYPE_ID
+ORDER BY IC.INSURER_ID;
+
+SELECT * FROM RSA_EOSAGO.POLICY_PROCESS_JOUR ppj WHERE PPJ.INS_REQ_JOUR_ID = '2695501071';
+
+SELECT * FROM RSA_EOSAGO.INS_COMPANY ic WHERE IC.INS_COMPANY LIKE '%Рен%';
+
+SELECT * FROM RSA_EOSAGO.REQUEST_TYPE rt ORDER BY RT.REQ_TYPE_ID;
+
+--70	Получ. списка проектов полиса с докум-тами, треб. подтвержд.
+--71	Получение документов требующих подтверждения
+--72	Отправка подтверждения проверок док-ов проектов полиса
+
+SELECT * FROM RSA_EOSAGO.INS_REQUEST_JOUR irj WHERE IRJ.REQ_TYPE_ID IN (70) AND IRJ.INS_COMPANY_ID = 12 AND IRJ.BEG_DATE >= TRUNC(sysdate) ORDER BY IRJ.BEG_DATE DESC;
+SELECT * FROM RSA_EOSAGO.INS_REQUEST_JOUR irj WHERE IRJ.REQ_TYPE_ID IN (71) AND IRJ.INS_COMPANY_ID = 12 AND IRJ.BEG_DATE >= TRUNC(sysdate) ORDER BY IRJ.BEG_DATE DESC;
+SELECT * FROM RSA_EOSAGO.INS_REQUEST_JOUR irj WHERE IRJ.REQ_TYPE_ID IN (72) AND IRJ.INS_COMPANY_ID = 12 AND IRJ.BEG_DATE >= TRUNC(sysdate) ORDER BY IRJ.BEG_DATE DESC;
+
+SELECT * FROM RSA_EOSAGO.INS_REQUEST_JOUR irj
+WHERE irj.INS_REQ_JOUR_ID IN (
+SELECT ins_req_jour_id FROM ( SELECT ins_req_jour_id FROM RSA_EOSAGO.INS_REQUEST_JOUR irj WHERE irj.INS_COMPANY_ID = '12' AND irj.REQ_TYPE_ID in ('72') AND irj.REQ_STATUS_ID = 3 ORDER BY irj.INS_REQ_JOUR_ID DESC) WHERE --ROWNUM < 1000
+beg_date >= TO_DATE ('03.10.2019 09:34:00','dd.mm.yyyy hh24:mi:ss')
+and beg_date <= TO_DATE ('03.10.2019 09:55:59','dd.mm.yyyy hh24:mi:ss')
+)
+AND EXTRACTVALUE(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(irj.req_body),NLS_CHARSET_ID('UTF8')),'*:AcceptScanRequest/ListAppScanRequest/ApplicationData/EpolicyID')= 2695532802;--[text()=1281822222]
+
+WITH SCANPARSE AS (
+SELECT
+ins_company_id,
+irj.INS_REQ_JOUR_ID,
+irj.req_status_id,
+irj.BEG_DATE,
+irj.END_DATE,
+EXTRACTVALUE(VALUE(TT1),'EpolicyID') EPOLICYID
+FROM RSA_EOSAGO.INS_REQUEST_JOUR irj
+,
+TABLE(XMLSEQUENCE(EXTRACT(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(irj.resp_body),NLS_CHARSET_ID('AL32UTF8')),'*:CheckScanResponse/ListApplicationID/EpolicyID'))) TT1
+WHERE irj.INS_COMPANY_ID = '12' AND irj.REQ_TYPE_ID in ('70')
+AND beg_date >= TO_DATE ('03.10.2019 09:34:00','dd.mm.yyyy hh24:mi:ss')
+and beg_date <= TO_DATE ('03.10.2019 09:55:59','dd.mm.yyyy hh24:mi:ss')
+AND irj.REQ_STATUS_ID = 3
+)
+SELECT
+*
+FROM SCANPARSE where EPOLICYID = '2695532802';
+
+SELECT
+ic.INS_COMPANY,
+icd.*
+FROM RSA_EOSAGO.INS_COMPANY_DISTRIBUTION icd
+JOIN RSA_EOSAGO.INS_COMPANY ic ON ICD.INS_COMPANY_ID = IC.INS_COMPANY_ID
+ WHERE icd.DISTRIBUTION_DATE >= TRUNC(SYSDATE - 4) AND ICD.DISTRIBUTION_CODE = 1 AND IC.INSURER_ID = '12600000'; --AND ICD.INS_COMPANY_ID = 223;
+
+SELECT * FROM RSA_EOSAGO.EPOLICY "e" WHERE "e".POLICY_INS_REQ_JOUR_ID IN (
+2307901336,
+2308972870,
+2773100423
+);
+
+SELECT
+ic.INS_COMPANY,
+icc.*
+FROM RSA_EOSAGO.INS_COMPANY_CHARACT icc
+JOIN RSA_EOSAGO.INS_COMPANY ic ON icc.INS_COMPANY_ID = ic.INS_COMPANY_ID
+--WHERE icc.MEMBER_CRIMEA = 1
+--WHERE ICC.REPRESENTATIVE_CRIMEA = 1
+--WHERE ICC.REJECT_RF = 1
+WHERE icc.REJECT_CRIMEA = 1
+ORDER BY TO_number(ICC.REGISTRATION_NUMBER)
+;

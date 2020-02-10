@@ -1,0 +1,1 @@
+select * from report.ins_company;

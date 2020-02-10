@@ -1,0 +1,1 @@
+select * from sms_notification_pg.sms_notif_pg.sms_notification_jour;

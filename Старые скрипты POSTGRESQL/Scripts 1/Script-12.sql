@@ -1,0 +1,1 @@
+select * from databasechangelog order by dateexecuted desc;

@@ -1,0 +1,18 @@
+﻿SELECT * FROM rsa1.REQUEST_TYPE "rt" ORDER BY "rt".REQ_TYPE_ID;
+
+--8	Пакет на изменение/откат статусов БСО
+--9	Запрос о последних выделенных туннелях БСО
+
+SELECT
+*
+FROM rsa1.INS_REQUEST_JUR irj
+WHERE IRJ.REQ_TYPE_ID = 8 AND IRJ.BEG_DATE > = TRUNC(SYSDATE);
+
+WITH CC1 AS (
+SELECT
+EXTRACTVALUE(VALUE(TT1),'signature') AS Signature
+FROM rsa1.INS_REQUEST_JUR irj,
+TABLE(XMLSEQUENCE(EXTRACT(XMLTYPE(UTL_COMPRESS.LZ_UNCOMPRESS(req_body),NLS_CHARSET_ID('UTF8')),'*:autoins/signature'))) TT1
+WHERE IRJ.REQ_TYPE_ID = 8 AND IRJ.BEG_DATE > = TRUNC(SYSDATE,'yyyy')
+)
+SELECT * FROM cc1 WHERE SIGNATURE IS NOT null;
